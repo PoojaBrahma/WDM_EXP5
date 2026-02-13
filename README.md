@@ -25,7 +25,6 @@ The Boolean model in Information Retrieval (IR) is a fundamental model used for 
 ```py
 import numpy as np
 import pandas as pd
-import re
 
 class BooleanRetrieval:
     def __init__(self):
@@ -36,17 +35,18 @@ class BooleanRetrieval:
     def index_document(self, doc_id, text):
         self.documents[doc_id] = text
         terms = text.lower().split()
-        print(f"Document {doc_id}:", terms)
+        print("Document -", doc_id, terms)
 
         for term in terms:
             if term not in self.index:
                 self.index[term] = set()
             self.index[term].add(doc_id)
 
-    def create_documents_matrix(self): # Added this function as a method within the class
+    def create_documents_matrix(self):
         terms = list(self.index.keys())
         num_docs = len(self.documents)
         num_terms = len(terms)
+
         self.documents_matrix = np.zeros((num_docs, num_terms), dtype=int)
 
         for i, (doc_id, text) in enumerate(self.documents.items()):
@@ -56,42 +56,45 @@ class BooleanRetrieval:
                     term_id = terms.index(term)
                     self.documents_matrix[i, term_id] = 1
 
-    def print_documents_matrix_table(self): # Added this function as a method within the class
-        df = pd.DataFrame(self.documents_matrix, columns=list(self.index.keys()), index=self.documents.keys())
-        print("\nDocument-Term Matrix:")
+    def print_documents_matrix_table(self):
+        df = pd.DataFrame(self.documents_matrix, columns=self.index.keys())
+        print("\nDocument-Term Matrix:\n")
         print(df)
 
-    def print_all_terms(self): # Added this function as a method within the class
-        print("\nAll indexed terms:")
+    def print_all_terms(self):
+        print("\nAll terms in the documents:")
         print(list(self.index.keys()))
 
     def boolean_search(self, query):
-        # Preprocessing
-        query = query.lower()
-        query = re.sub(r'\band\b', '&', query)
-        query = re.sub(r'\bor\b', '|', query)
-        query = re.sub(r'\bnot\b', '-', query)
+        query = query.lower().split()
+        result = set(self.documents.keys())
 
-        # Replace terms with document sets
-        tokens = re.findall(r'\w+|[&|\-()]', query)
-        processed_tokens = []
-        for token in tokens:
-            if token.isalpha():
-                docs = self.index.get(token, set())
-                processed_tokens.append(f"set({docs})")
+        i = 0
+        while i < len(query):
+            term = query[i]
+
+            if term == "and":
+                i += 1
+                next_term = query[i]
+                result = result.intersection(self.index.get(next_term, set()))
+
+            elif term == "or":
+                i += 1
+                next_term = query[i]
+                result = result.union(self.index.get(next_term, set()))
+            elif term == "not":
+                i += 1
+                next_term = query[i]
+                result = result.difference(self.index.get(next_term, set()))
             else:
-                processed_tokens.append(token)
+                result = self.index.get(term, set())
+            i += 1
+        return result
 
-        # Evaluate the boolean expression
-        final_expr = " ".join(processed_tokens)
-        try:
-            result_set = eval(final_expr)
-            return result_set
-        except:
-            print("Invalid query syntax.")
-            return set()
 
+# Main Program
 if __name__ == "__main__":
+
     indexer = BooleanRetrieval()
 
     documents = {
@@ -100,28 +103,38 @@ if __name__ == "__main__":
         3: "Boolean models are used in information retrieval"
     }
 
+    # Indexing documents
     for doc_id, text in documents.items():
         indexer.index_document(doc_id, text)
 
+    # Create document-term matrix
     indexer.create_documents_matrix()
     indexer.print_documents_matrix_table()
     indexer.print_all_terms()
 
-    while True:
-        query = input("\nEnter your boolean query (or 'exit' to quit): ")
-        if query.lower() == 'exit':
-            break
-        results = indexer.boolean_search(query)
-        if results:
-            print(f"Results for '{query}': Documents {sorted(results)}")
-        else:
-            print("No results found for the query.")
+    # Boolean Search
+    query = input("\nEnter your boolean query: ")
+    results = indexer.boolean_search(query)
 
+    if results:
+        print(f"\nResults for '{query}': {results}")
+    else:
+        print("\nNo results found for the query.")
 ```
 ### Output:
 
-<img width="1320" height="719" alt="image" src="https://github.com/user-attachments/assets/a327a1a0-a1fe-4aac-8b3b-71084776a2d5" />
 
+<img width="1256" height="508" alt="image" src="https://github.com/user-attachments/assets/499b7aac-6f39-439e-aaba-102885f1e36a" />
+
+<img width="1272" height="508" alt="image" src="https://github.com/user-attachments/assets/2a7afb16-c545-4269-97eb-97981c6a8445" />
+
+<img width="1258" height="521" alt="image" src="https://github.com/user-attachments/assets/1a144834-e223-4f78-978d-711abd8ae62c" />
+
+<img width="1233" height="516" alt="image" src="https://github.com/user-attachments/assets/5676f2b9-6239-43d4-82fe-cda30cb9b0ed" />
+
+<img width="1335" height="518" alt="image" src="https://github.com/user-attachments/assets/f2a28be9-b036-41d0-9ea2-ff16fd1cd951" />
+
+<img width="1262" height="519" alt="image" src="https://github.com/user-attachments/assets/fc4ccbcc-7bb6-49c3-94f5-5e14d3e227e9" />
 
 
 ### Result:
